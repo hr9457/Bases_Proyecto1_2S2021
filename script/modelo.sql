@@ -32,7 +32,7 @@ ALTER TABLE ciudad ADD CONSTRAINT FK1_ciudad FOREIGN KEY (id_pais) REFERENCES pa
 
 CREATE TABLE direccion (
     id_direccion INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
-    codigo_postal INTEGER NOT NULL,
+    codigo_postal INTEGER,
     direccion VARCHAR2(150) NOT NULL,
     id_ciudad INTEGER NOT NULL
 );
@@ -87,13 +87,14 @@ CREATE TABLE cliente (
     fecha_registro TIMESTAMP NOT NULL,
     correo_cliente VARCHAR2(150) NOT NULL,
     id_estado_actividad INTEGER NOT NULL,
-    id_direccion INTEGER NOT NULL
+    id_direccion INTEGER NOT NULL,
+    id_tienda INTEGER NOT NULL
 );
 
 ALTER TABLE cliente ADD CONSTRAINT PK_cliente PRIMARY KEY (id_cliente);
 ALTER TABLE cliente ADD CONSTRAINT FK1_cliente FOREIGN KEY (id_estado_actividad) REFERENCES estado_actividad (id_estado_actividad) ON DELETE CASCADE;
 ALTER TABLE cliente ADD CONSTRAINT FK2_cliente FOREIGN KEY (id_direccion) REFERENCES direccion (id_direccion) ON DELETE CASCADE;
-
+ALTER TABLE cliente ADD CONSTRAINT FK3_cliente FOREIGN KEY (id_tienda) REFERENCES tienda (id_tienda) ON DELETE CASCADE;
 
 
 
@@ -123,14 +124,15 @@ CREATE TABLE empleado (
     contrasenia_empleado VARCHAR(200) NOT NULL,
     id_tipo_empleado INTEGER NOT NULL,
     id_tienda INTEGER NOT NULL,
-    id_direccion INTEGER NOT NULL
+    id_direccion INTEGER NOT NULL,
+    id_estado_actividad INTEGER NOT NULL
 );
 
 ALTER TABLE empleado ADD CONSTRAINT PK_empleado PRIMARY KEY (id_empleado);
 ALTER TABLE empleado ADD CONSTRAINT FK1_empleado FOREIGN KEY (id_tipo_empleado) REFERENCES tipo_empleado (id_tipo_empleado) ON DELETE CASCADE;
 ALTER TABLE empleado ADD CONSTRAINT FK2_empleado FOREIGN KEY (id_tienda) REFERENCES tienda (id_tienda) ON DELETE CASCADE;
 ALTER TABLE empleado ADD CONSTRAINT FK3_empleado FOREIGN KEY (id_direccion) REFERENCES direccion (id_direccion) ON DELETE CASCADE;
-
+ALTER TABLE empleado ADD CONSTRAINT FK4_empleado FOREIGN KEY (id_estado_actividad) REFERENCES estado_actividad (id_estado_actividad) ON DELETE CASCADE;
 
 
 
@@ -258,6 +260,7 @@ ALTER TABLE pelicula_traduccion ADD CONSTRAINT FK2_pelicula_traduccion FOREIGN K
 -- ****************************
 -- tabla inventario
 -- ****************************
+
 CREATE TABLE inventario (
     id_inventario INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
     id_tienda INTEGER NOT NULL,
@@ -267,6 +270,49 @@ CREATE TABLE inventario (
 ALTER TABLE inventario ADD CONSTRAINT PK_inventario PRIMARY KEY (id_inventario);
 ALTER TABLE inventario ADD CONSTRAINT FK1_inventario FOREIGN KEY (id_tienda) REFERENCES tienda (id_tienda) ON DELETE CASCADE;
 ALTER TABLE inventario ADD CONSTRAINT FK2_inventario FOREIGN KEY (id_pelicula) REFERENCES pelicula (id_pelicula) ON DELETE CASCADE;
+
+
+
+
+-- ****************************
+-- tabla factura
+-- ****************************
+
+CREATE TABLE factura (
+    id_factura INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+    fecha_facturacion TIMESTAMP NOT NULL,
+    monto_toal NUMBER(10,2) NOT NULL,
+    id_empleado INTEGER NOT NULL,
+    id_cliente INTEGER NOT NULL
+);
+
+ALTER TABLE factura ADD CONSTRAINT PK_factura PRIMARY KEY (id_factura);
+ALTER TABLE factura ADD CONSTRAINT FK1_factura FOREIGN KEY (id_empleado) REFERENCES empleado (id_empleado) ON DELETE CASCADE;
+ALTER TABLE factura ADD CONSTRAINT FK2_factura FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente) ON DELETE CASCADE;
+
+
+
+
+-- ****************************
+-- tabla detalle_factura
+-- ****************************
+
+CREATE TABLE detalle_factura(
+    fecha_alquiler TIMESTAMP NOT NULL,
+    fecha_retorno TIMESTAMP,
+    id_inventario INTEGER NOT NULL,
+    id_factura INTEGER NOT NULL
+);
+
+
+
+ALTER TABLE detalle_factura ADD CONSTRAINT FK1_detalle_factura FOREIGN KEY (id_inventario) REFERENCES inventario (id_inventario) ON DELETE CASCADE;
+ALTER TABLE detalle_factura ADD CONSTRAINT FK2_detalle_factura FOREIGN KEY (id_factura) REFERENCES factura (id_factura) ON DELETE CASCADE;
+
+
+
+
+
 
 
 
@@ -296,3 +342,5 @@ DROP TABLE pelicula_categoria CASCADE CONSTRAINTS;
 DROP TABLE pelicula_actor CASCADE CONSTRAINTS;
 DROP TABLE pelicula_traduccion CASCADE CONSTRAINTS;
 DROP TABLE inventario CASCADE CONSTRAINTS;
+DROP TABLE factura CASCADE CONSTRAINTS;
+DROP TABLE detalle_factura CASCADE CONSTRAINTS;
