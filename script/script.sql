@@ -1,3 +1,7 @@
+-- ****************************
+-- tabla temporal
+-- ****************************
+
 CREATE TABLE temporal(
     nombre_cliente  VARCHAR2(150),
     correo_cliente  VARCHAR2(150),
@@ -42,11 +46,12 @@ CREATE TABLE temporal(
     actor_pelicula VARCHAR2(100)
 );
 
-select * from temporal;
-
-
-TRUNCATE table temporal;
+-- eliminacion de los datos de la tabla temporal
 drop table temporal;
+
+-- eliminacion de la tabla temporal
+TRUNCATE table temporal;
+
 
 
 -- consulta para insertar paises = 109
@@ -221,7 +226,7 @@ INSERT INTO pelicula_traduccion(pelicula_traduccion.id_traduccion, pelicula_trad
 
 
 
--- inventario = 15
+-- inventario = 1521
 INSERT INTO inventario(inventario.id_pelicula,inventario.id_tienda)
     SELECT DISTINCT pelicula.id_pelicula, tienda.id_tienda
     FROM temporal
@@ -263,4 +268,30 @@ INSERT INTO empleado(empleado.nombre_empleado, empleado.apellido_empleado, emple
 
 
 
+
+
+
+
+-- invetario = 16,044
+INSERT INTO renta(renta.fecha_alquiler, renta.fecha_retorno, renta.fecha_facturacion, renta.pago, renta.id_cliente, renta.id_empleado, renta.id_inventario)
+    SELECT sub.renta, sub.retorno, sub.facturacion, sub.costo, sub.cliente, sub.empleado, inventario.id_inventario
+    FROM inventario
+        INNER JOIN (
+            SELECT DISTINCT temporal.fecha_renta AS renta, 
+                            temporal.fecha_retorno AS retorno,
+                            temporal.fecha_renta AS facturacion,
+                            pelicula.id_pelicula AS pelicula,
+                            pelicula.costo_renta AS costo,
+                            cliente.id_cliente AS cliente,
+                            empleado.id_empleado AS empleado,
+                            tienda.id_tienda AS tienda
+            FROM temporal
+                INNER JOIN cliente ON temporal.nombre_cliente = cliente.nombre_cliente||' '||cliente.apellido_cliente
+                INNER JOIN empleado ON temporal.encargado_tienda = empleado.nombre_empleado||' '||empleado.apellido_empleado
+                INNER JOIN tienda ON temporal.tienda_pelicula = tienda.nombre_tienda
+                INNER JOIN pelicula ON temporal.nombre_pelicula = pelicula.titulo_pelicula
+                WHERE temporal.nombre_cliente IS NOT NULL) sub ON inventario.id_tienda = sub.tienda AND inventario.id_pelicula = sub.pelicula;
+                
+            
+            
 

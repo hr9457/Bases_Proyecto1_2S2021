@@ -275,20 +275,41 @@ ALTER TABLE inventario ADD CONSTRAINT FK2_inventario FOREIGN KEY (id_pelicula) R
 
 
 -- ****************************
+-- tabla renta
+-- ****************************
+
+CREATE TABLE renta (
+    fecha_alquiler TIMESTAMP NOT NULL,
+    fecha_retorno TIMESTAMP,
+    fecha_facturacion TIMESTAMP NOT NULL,
+    pago NUMBER(10,2) NOT NULL,
+    id_cliente INTEGER NOT NULL,
+    id_empleado INTEGER NOT NULL,
+    id_inventario INTEGER NOT NULL
+);
+
+
+ALTER TABLE renta ADD CONSTRAINT FK1_renta FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente) ON DELETE CASCADE;
+ALTER TABLE renta ADD CONSTRAINT FK2_renta FOREIGN KEY (id_empleado) REFERENCES empleado (id_empleado) ON DELETE CASCADE;
+ALTER TABLE renta ADD CONSTRAINT FK3_renta FOREIGN KEY (id_inventario) REFERENCES inventario (id_inventario) ON DELETE CASCADE; 
+
+
+
+-- ****************************
 -- tabla factura
 -- ****************************
 
-CREATE TABLE factura (
-    id_factura INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
-    fecha_facturacion TIMESTAMP NOT NULL,
-    monto_toal NUMBER(10,2) NOT NULL,
-    id_empleado INTEGER NOT NULL,
-    id_cliente INTEGER NOT NULL
-);
+-- CREATE TABLE factura (
+--     id_factura INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+--     fecha_facturacion TIMESTAMP NOT NULL,
+--     monto_toal NUMBER(10,2) NOT NULL,
+--     id_empleado INTEGER NOT NULL,
+--     id_cliente INTEGER NOT NULL
+-- );
 
-ALTER TABLE factura ADD CONSTRAINT PK_factura PRIMARY KEY (id_factura);
-ALTER TABLE factura ADD CONSTRAINT FK1_factura FOREIGN KEY (id_empleado) REFERENCES empleado (id_empleado) ON DELETE CASCADE;
-ALTER TABLE factura ADD CONSTRAINT FK2_factura FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente) ON DELETE CASCADE;
+-- ALTER TABLE factura ADD CONSTRAINT PK_factura PRIMARY KEY (id_factura);
+-- ALTER TABLE factura ADD CONSTRAINT FK1_factura FOREIGN KEY (id_empleado) REFERENCES empleado (id_empleado) ON DELETE CASCADE;
+-- ALTER TABLE factura ADD CONSTRAINT FK2_factura FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente) ON DELETE CASCADE;
 
 
 
@@ -297,17 +318,17 @@ ALTER TABLE factura ADD CONSTRAINT FK2_factura FOREIGN KEY (id_cliente) REFERENC
 -- tabla detalle_factura
 -- ****************************
 
-CREATE TABLE detalle_factura(
-    fecha_alquiler TIMESTAMP NOT NULL,
-    fecha_retorno TIMESTAMP,
-    id_inventario INTEGER NOT NULL,
-    id_factura INTEGER NOT NULL
-);
+-- CREATE TABLE detalle_factura(
+--     fecha_alquiler TIMESTAMP NOT NULL,
+--     fecha_retorno TIMESTAMP,
+--     id_inventario INTEGER NOT NULL,
+--     id_factura INTEGER NOT NULL
+-- );
 
 
 
-ALTER TABLE detalle_factura ADD CONSTRAINT FK1_detalle_factura FOREIGN KEY (id_inventario) REFERENCES inventario (id_inventario) ON DELETE CASCADE;
-ALTER TABLE detalle_factura ADD CONSTRAINT FK2_detalle_factura FOREIGN KEY (id_factura) REFERENCES factura (id_factura) ON DELETE CASCADE;
+-- ALTER TABLE detalle_factura ADD CONSTRAINT FK1_detalle_factura FOREIGN KEY (id_inventario) REFERENCES inventario (id_inventario) ON DELETE CASCADE;
+-- ALTER TABLE detalle_factura ADD CONSTRAINT FK2_detalle_factura FOREIGN KEY (id_factura) REFERENCES factura (id_factura) ON DELETE CASCADE;
 
 
 
@@ -342,5 +363,7 @@ DROP TABLE pelicula_categoria CASCADE CONSTRAINTS;
 DROP TABLE pelicula_actor CASCADE CONSTRAINTS;
 DROP TABLE pelicula_traduccion CASCADE CONSTRAINTS;
 DROP TABLE inventario CASCADE CONSTRAINTS;
-DROP TABLE factura CASCADE CONSTRAINTS;
-DROP TABLE detalle_factura CASCADE CONSTRAINTS;
+DROP TABLE renta CASCADE CONSTRAINTS;
+
+-- DROP TABLE factura CASCADE CONSTRAINTS;
+-- DROP TABLE detalle_factura CASCADE CONSTRAINTS;
