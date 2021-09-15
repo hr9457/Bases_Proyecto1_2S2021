@@ -60,7 +60,7 @@ WHERE renta.fecha_retorno > (renta.fecha_alquiler + pelicula.dias_renta + 1);
 
 
 -- ****************************
--- Mostar el nombre y apellid (en una sola columna) de los actores
+-- 4. Mostar el nombre y apellid (en una sola columna) de los actores
 -- que contiene la palabra SON en su apellido y ordenador por su primer nombre
 -- cantidad = 9
 -- ****************************
@@ -163,3 +163,136 @@ FROM(
     )categorias
 WHERE categorias.cantidad >= 55 AND categorias.cantidad <= 65
 ORDER BY categorias.cantidad DESC;
+
+
+
+
+
+-- ****************************
+-- mostrar todas la categorias y promedio del costo del remplazo de la pelicula
+-- y precio de alquiler sea superior a 17
+-- cantidad = 8
+-- ****************************
+
+SELECT 
+    categorias.CATEGORIA,
+    categorias.PROMEDIO
+FROM (
+        SELECT 
+            categoria.nombre_categoria AS CATEGORIA, 
+            ROUND( AVG(pelicula.costo_por_danio) - AVG(pelicula.costo_renta),2) AS PROMEDIO
+        FROM pelicula_categoria
+            INNER JOIN categoria ON categoria.id_categoria = pelicula_categoria.id_categoria
+            INNER JOIN pelicula ON pelicula.id_pelicula = pelicula_categoria.id_pelicula
+        GROUP BY categoria.nombre_categoria
+    )categorias
+WHERE categorias.PROMEDIO >= 17;
+
+
+
+
+
+-- ****************************
+-- 9. nombre y apellido de actores 
+-- peliculas en las que tiene dos o mas actores
+-- cantidad = 5,462
+-- ****************************
+
+SELECT 
+    pelicula.titulo_pelicula AS TITULO,
+    actor.nombre AS NOMBRE, 
+    actor.apellido AS APELLIDO    
+FROM pelicula_actor
+    INNER JOIN actor ON actor.id_actor = pelicula_actor.id_actor
+    INNER JOIN pelicula ON pelicula.id_pelicula = pelicula_actor.id_pelicula
+    INNER JOIN (
+        SELECT
+            pelicula_actor.id_actor,
+            COUNT(pelicula_actor.id_pelicula) AS CANTIDAD
+        FROM pelicula_actor
+        GROUP BY pelicula_actor.id_actor
+    )cantidad ON cantidad.id_actor = pelicula_actor.id_actor
+WHERE cantidad.CANTIDAD >= 2
+ORDER BY TITULO
+;
+
+
+
+
+
+
+-- ****************************
+-- 10. mostara nombre y apellido (en una sola columna) de todos los actores y clientes 
+-- cuyo primer nombre sea el mismo que el primer nombre del actor id=8 no se debe retorno el id 
+-- cantidad = 3
+-- ****************************
+
+
+SELECT 
+    actor.nombre ||' '||actor.apellido AS ACTOR
+FROM actor
+WHERE actor.nombre = (SELECT actor.nombre ACTOR
+                        FROM actor
+                        WHERE actor.id_actor = 8)
+
+
+    UNION
+
+
+SELECT 
+    cliente.nombre_cliente ||' '||cliente.apellido_cliente AS CLIENTE
+FROM cliente
+WHERE cliente.nombre_cliente = (SELECT actor.nombre ACTOR
+                                FROM actor
+                                WHERE actor.id_actor = 8);
+
+
+
+
+
+
+-------------------------------------
+-- mostrar pais y nombre cliente que mas peliculas rento  
+-- el porcentaje que representa la cantidad de peliulas que rento con resto de los demas cliente 
+-- de ese pais
+-- cantidad = 1
+SELECT 
+    pais.nombre,
+    cliente.nombre_cliente,
+    ((  SELECT 
+            COUNT(renta.id_inventario)
+        FROM renta 
+            INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+            INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+            INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+            INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+        WHERE pais.id_pais = (
+                            SELECT  
+                                pais.id_pais
+                            FROM cliente    
+                                INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+                                INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+                                INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+                                INNER JOIN (
+                                        SELECT
+                                            renta.id_cliente AS ID_CLIENTE,
+                                            COUNT(renta.id_cliente) AS CANTIDAD
+                                        FROM renta
+                                        GROUP BY renta.id_cliente
+                                        ORDER BY CANTIDAD DESC
+                                        FETCH FIRST 1 ROWS ONLY
+                                )CLIENTE_CANTIDAD ON cliente_cantidad.ID_CLIENTE = cliente.id_cliente)
+    )/(CLIENTE_CANTIDAD.CANTIDAD))*100 AS PORCENTAJE
+FROM cliente    
+    INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+    INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+    INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+    INNER JOIN (
+            SELECT
+                renta.id_cliente AS ID_CLIENTE,
+                COUNT(renta.id_cliente) AS CANTIDAD
+            FROM renta
+            GROUP BY renta.id_cliente
+            ORDER BY CANTIDAD DESC
+            FETCH FIRST 1 ROWS ONLY
+    )CLIENTE_CANTIDAD ON cliente_cantidad.ID_CLIENTE = cliente.id_cliente;
