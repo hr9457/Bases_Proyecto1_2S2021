@@ -296,3 +296,285 @@ FROM cliente
             ORDER BY CANTIDAD DESC
             FETCH FIRST 1 ROWS ONLY
     )CLIENTE_CANTIDAD ON cliente_cantidad.ID_CLIENTE = cliente.id_cliente;
+
+
+
+
+
+
+-------------------------------------
+-- 13.
+-- cantidad = 108
+--- cliente y informacion de su pais
+-- 113
+
+SELECT subconsulta1.city, subconsulta2.cliente, subconsulta1.cantidad
+FROM(
+    SELECT 
+        consulta.identificador,
+        consulta.city,
+        MAX(consulta.cantidad) AS cantidad
+    FROM (
+        SELECT 
+            pais.id_pais AS identificador,
+            pais.nombre AS city,
+            cliente.nombre_cliente||' '||cliente.apellido_cliente AS cliente,
+            COUNT(renta.id_cliente) AS cantidad        
+        FROM renta 
+            INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+            INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+            INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+            INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+        GROUP BY pais.id_pais ,pais.nombre, cliente.nombre_cliente||' '||cliente.apellido_cliente
+        ORDER BY city ASC
+        ) consulta
+    GROUP BY consulta.identificador, consulta.city 
+    ORDER BY consulta.city ASC
+    )SubConsulta1
+        INNER JOIN (
+            SELECT 
+                    pais.id_pais AS identificador,
+                    pais.nombre AS city,
+                    cliente.nombre_cliente||' '||cliente.apellido_cliente AS cliente,
+                    COUNT(renta.id_cliente) AS cantidad        
+                FROM renta 
+                    INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+                    INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+                    INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+                    INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+                GROUP BY pais.id_pais ,pais.nombre, cliente.nombre_cliente||' '||cliente.apellido_cliente
+                ORDER BY city ASC
+        )SubConsulta2 ON SubConsulta2.cantidad = SubConsulta1.cantidad AND subconsulta1.city = subconsulta2.city;
+
+
+
+
+
+-- ****************************
+-- 14. tipo de pelicula mas rentadad por ciudad 
+-- y que sean de tipo horror
+-- cantidad = 256
+-- ****************************
+
+
+SELECT 
+    horror.city,
+    horror.country
+FROM(
+    SELECT 
+        ciudad.id_ciudad,
+        ciudad.nombre AS country,
+        subConsulta1.categoria,
+        pais.nombre AS city,
+        COUNT(inventario.id_inventario) AS cantidad
+    FROM renta
+        INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+        INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+        INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+        INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+        INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+        INNER JOIN (
+            -- peliculas de tipo horror = 56
+            SELECT 
+                pelicula.id_pelicula, 
+                pelicula.titulo_pelicula, 
+                categoria.nombre_categoria AS categoria
+            FROM pelicula_categoria
+                INNER JOIN  pelicula ON pelicula.id_pelicula = pelicula_categoria.id_pelicula
+                INNER JOIN  categoria ON categoria.id_categoria = pelicula_categoria.id_categoria
+        )subConsulta1 ON subconsulta1.id_pelicula = inventario.id_pelicula
+    GROUP BY ciudad.id_ciudad, ciudad.nombre, subConsulta1.categoria, pais.nombre
+    ORDER BY ciudad.id_ciudad ASC)todas
+
+    INNER JOIN(
+        SELECT 
+            ciudad.id_ciudad,
+            ciudad.nombre AS country,
+            pais.nombre AS city,
+            COUNT(renta.id_cliente) AS cantidad
+        FROM renta
+            INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+            INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+            INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+            INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+            INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+            INNER JOIN (
+                -- peliculas de tipo horror = 56
+                SELECT 
+                    pelicula.id_pelicula, 
+                    pelicula.titulo_pelicula, 
+                    categoria.nombre_categoria
+                FROM pelicula_categoria
+                    INNER JOIN  pelicula ON pelicula.id_pelicula = pelicula_categoria.id_pelicula
+                    INNER JOIN  categoria ON categoria.id_categoria = pelicula_categoria.id_categoria
+                    WHERE categoria.nombre_categoria = 'Horror'
+            )subConsulta1 ON subconsulta1.id_pelicula = inventario.id_pelicula
+        GROUP BY ciudad.id_ciudad, ciudad.nombre, pais.nombre
+        ORDER BY ciudad.id_ciudad ASC    
+    )horror ON todas.city = horror.city AND horror.cantidad > todas.cantidad
+GROUP BY horror.city, horror.country;
+
+
+
+
+
+-- ****************************
+-- 15. mostrar el nombre del pais, el promedio por pais 
+-- cantidad = 101
+-- ****************************
+
+SELECT
+    rentas.city,
+    ROUND(rentas.cantidad/ciudades.cantidad,2) AS promedio
+FROM(
+    SELECT
+        pais.id_pais AS identificador,
+        pais.nombre AS city,
+        COUNT(renta.id_cliente) AS cantidad
+    FROM renta
+        INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+        INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+        INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+        INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+    GROUP BY pais.id_pais,pais.nombre
+    ORDER BY pais.nombre)rentas
+,
+    (
+        SELECT
+            pais.id_pais AS identificador,
+            pais.nombre AS city,
+            COUNT(ciudad.nombre) AS CANTIDAD
+        FROM ciudad
+            INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+        GROUP BY pais.id_pais,pais.nombre
+        ORDER BY pais.nombre
+    )ciudades
+WHERE rentas.city = ciudades.city;
+
+
+
+
+-- ****************************
+-- 16. nombre del pais y porcentaje de rentas de peliculas de la categoria sports
+-- cantidad = 101
+-- ****************************
+
+-- peliculas sports por pais = 101
+SELECT 
+    pais.id_pais, 
+    pais.nombre,
+    ROUND( sport.cantidad/cantidad.cantidad ,2)*100 AS promedio
+FROM pais
+    INNER JOIN(
+        SELECT 
+            pais.id_pais AS identificador,
+            pais.nombre AS city,
+            COUNT(renta.id_cliente) AS cantidad
+        FROM renta
+            INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+            INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+            INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+            INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+            INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+            INNER JOIN (
+                -- peliculas de tipo horror = 56
+                SELECT 
+                    pelicula.id_pelicula, 
+                    pelicula.titulo_pelicula, 
+                    categoria.nombre_categoria
+                FROM pelicula_categoria
+                    INNER JOIN  pelicula ON pelicula.id_pelicula = pelicula_categoria.id_pelicula
+                    INNER JOIN  categoria ON categoria.id_categoria = pelicula_categoria.id_categoria
+            )subConsulta1 ON subconsulta1.id_pelicula = inventario.id_pelicula
+        GROUP BY pais.id_pais, pais.nombre
+        ORDER BY city ASC
+    ) cantidad ON cantidad.identificador = pais.id_pais
+    INNER JOIN(
+        SELECT 
+            pais.id_pais AS identificador,
+            pais.nombre AS city,
+            COUNT(renta.id_cliente) AS cantidad
+        FROM renta
+            INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+            INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+            INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+            INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+            INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+            INNER JOIN (
+                -- peliculas de tipo horror = 56
+                SELECT 
+                    pelicula.id_pelicula, 
+                    pelicula.titulo_pelicula, 
+                    categoria.nombre_categoria
+                FROM pelicula_categoria
+                    INNER JOIN  pelicula ON pelicula.id_pelicula = pelicula_categoria.id_pelicula
+                    INNER JOIN  categoria ON categoria.id_categoria = pelicula_categoria.id_categoria
+                    WHERE categoria.nombre_categoria = 'Sports'
+            )subConsulta1 ON subconsulta1.id_pelicula = inventario.id_pelicula
+        GROUP BY pais.id_pais, pais.nombre
+        ORDER BY city ASC      
+    )sport ON sport.identificador = pais.id_pais
+ORDER BY promedio;
+
+
+
+
+
+
+-- ****************************
+-- 17. mostrar el listado de Estados Unidos 
+-- cantidad = 20
+-- ****************************
+
+SELECT ciudades.country, ciudades.cantidad
+FROM(
+    SELECT 
+        pais.id_pais AS identificador,
+        pais.nombre AS city,
+        ciudad.nombre AS country,
+        COUNT(renta.id_cliente) AS cantidad
+    FROM renta
+        INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+        INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+        INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+        INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+        INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+        INNER JOIN (
+            -- peliculas de tipo horror = 56
+            SELECT 
+                pelicula.id_pelicula, 
+                pelicula.titulo_pelicula, 
+                categoria.nombre_categoria
+            FROM pelicula_categoria
+                INNER JOIN  pelicula ON pelicula.id_pelicula = pelicula_categoria.id_pelicula
+                INNER JOIN  categoria ON categoria.id_categoria = pelicula_categoria.id_categoria
+        )subConsulta1 ON subconsulta1.id_pelicula = inventario.id_pelicula
+    WHERE pais.nombre = 'United States'
+    GROUP BY pais.id_pais, pais.nombre, ciudad.nombre
+    ORDER BY city ASC)ciudades
+    INNER JOIN (
+        SELECT 
+            pais.id_pais AS identificador,
+            pais.nombre AS city,
+            ciudad.nombre AS country,
+            COUNT(renta.id_cliente) AS cantidad
+        FROM renta
+            INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+            INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+            INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+            INNER JOIN pais ON pais.id_pais = ciudad.id_pais
+            INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+            INNER JOIN (
+                -- peliculas de tipo horror = 56
+                SELECT 
+                    pelicula.id_pelicula, 
+                    pelicula.titulo_pelicula, 
+                    categoria.nombre_categoria
+                FROM pelicula_categoria
+                    INNER JOIN  pelicula ON pelicula.id_pelicula = pelicula_categoria.id_pelicula
+                    INNER JOIN  categoria ON categoria.id_categoria = pelicula_categoria.id_categoria
+            )subConsulta1 ON subconsulta1.id_pelicula = inventario.id_pelicula
+        WHERE pais.nombre = 'United States' AND ciudad.nombre = 'Dayton'
+        GROUP BY pais.id_pais, pais.nombre, ciudad.nombre
+        ORDER BY city ASC
+    )dayton ON ciudades.cantidad > dayton.cantidad;
