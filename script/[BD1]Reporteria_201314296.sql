@@ -75,7 +75,7 @@ ORDER BY actor.nombre ASC;
 
 
 -- ****************************
--- mostrar el apellido de todos los actores y la cantidad de actores que tiene ese apellido
+-- 5. mostrar el apellido de todos los actores y la cantidad de actores que tiene ese apellido
 -- 
 -- ****************************
 -- apellidos 121 y nombres 51
@@ -128,7 +128,7 @@ FROM actor
 
 
 -- ****************************
--- nombre, apellido de los actores que participaron en peliculas 
+-- 6. nombre, apellido de los actores que participaron en peliculas 
 -- que involucran un Cocodrilo y Tiburon junto con el año de lanzamiento, ordenados por el apellido del actor en forma ascendente 
 -- cantidad = 58
 -- ****************************
@@ -147,7 +147,7 @@ ORDER BY actor.apellido ASC;
 
 
 -- ****************************
--- nombre de la categoria y el numero de peliculas por categoria
+-- 7. nombre de la categoria y el numero de peliculas por categoria
 -- que la cantidad este entre 55 y 65
 -- 10
 -- ****************************
@@ -169,7 +169,7 @@ ORDER BY categorias.cantidad DESC;
 
 
 -- ****************************
--- mostrar todas la categorias y promedio del costo del remplazo de la pelicula
+-- 8. mostrar todas la categorias y promedio del costo del remplazo de la pelicula
 -- y precio de alquiler sea superior a 17
 -- cantidad = 8
 -- ****************************
@@ -252,7 +252,7 @@ WHERE cliente.nombre_cliente = (SELECT actor.nombre ACTOR
 
 
 -------------------------------------
--- mostrar pais y nombre cliente que mas peliculas rento  
+-- 11. mostrar pais y nombre cliente que mas peliculas rento  
 -- el porcentaje que representa la cantidad de peliulas que rento con resto de los demas cliente 
 -- de ese pais
 -- cantidad = 1
@@ -299,6 +299,10 @@ FROM cliente
 
 
 
+
+-- ****************************
+-- 12. 
+-- ****************************
 
 
 
@@ -578,3 +582,100 @@ FROM(
         GROUP BY pais.id_pais, pais.nombre, ciudad.nombre
         ORDER BY city ASC
     )dayton ON ciudades.cantidad > dayton.cantidad;
+
+
+
+
+
+-- ****************************
+-- 18. mostar nombre, apellido, fecha de retorno
+-- todos los clientes que hallan devuelto mas de 2 peliculas 
+-- que esten en ingles 
+-- cantidad = 383
+-- ****************************
+
+SELECT 
+    clientes.identificador,
+    clientes.nombre,
+    clientes.apellido,
+    TRUNC(renta.fecha_retorno)
+FROM(
+    -- 1058
+    SELECT 
+        cliente.id_cliente AS IDENTIFICADOR, 
+        cliente.nombre_cliente AS NOMBRE, 
+        cliente.apellido_cliente AS APELLIDO,
+        TRUNC(renta.fecha_alquiler) AS FECHA_ALQUILER,
+        COUNT(renta.id_cliente) AS CANTIDAD
+    FROM cliente
+        INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
+        INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+        INNER JOIN pelicula ON pelicula.id_pelicula = inventario.id_pelicula
+        INNER JOIN pelicula_traduccion ON pelicula_traduccion.id_pelicula = pelicula.id_pelicula
+        INNER JOIN traduccion ON traduccion.id_traduccion = pelicula_traduccion.id_traduccion
+    WHERE traduccion.lenguaje LIKE '%English%'
+    GROUP BY cliente.id_cliente, cliente.nombre_cliente, cliente.apellido_cliente, TRUNC(renta.fecha_alquiler)
+    HAVING COUNT(renta.id_cliente)>2
+    )clientes,
+    (
+    -- 174    
+    SELECT
+        cliente.id_cliente AS IDENTIFICADOR,
+        empleado.id_empleado AS EMPLEADO,
+        TRUNC(renta.fecha_alquiler) AS FECHA_ALQUILER,
+        SUM(renta.pago)
+    FROM renta
+        INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+        INNER JOIN empleado ON empleado.id_empleado = renta.id_empleado
+    GROUP BY cliente.id_cliente, empleado.id_empleado, TRUNC(renta.fecha_alquiler)
+    HAVING SUM(renta.pago) >15
+    )info_empleado,
+    renta
+WHERE renta.id_cliente = info_empleado.identificador
+    AND renta.id_empleado = info_empleado.empleado
+    AND TRUNC(renta.fecha_alquiler) = info_empleado.fecha_alquiler
+    AND renta.id_cliente = clientes.identificador
+    AND TRUNC(renta.fecha_alquiler) = clientes.fecha_alquiler
+GROUP BY clientes.identificador,
+    clientes.nombre,
+    clientes.apellido,
+    TRUNC(renta.fecha_retorno)
+
+
+
+
+-- ****************************
+-- 19. 
+-- 
+-- ****************************
+
+
+SELECT 
+    cliente.nombre_cliente,
+    cliente.apellido_cliente,
+    COUNT(renta.id_cliente)
+FROM cliente
+    INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
+GROUP BY cliente.nombre_cliente, cliente.apellido_cliente
+ORDER BY COUNT(renta.id_cliente) DESC
+FETCH FIRST 1 ROWS ONLY;
+
+
+
+
+SELECT 
+    cliente.nombre_cliente,
+    cliente.apellido_cliente,
+    COUNT(renta.id_cliente)
+FROM cliente
+    INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
+GROUP BY cliente.nombre_cliente, cliente.apellido_cliente
+ORDER BY COUNT(renta.id_cliente) ASC
+FETCH FIRST 1 ROWS ONLY;
+
+
+
+
+select 
+    EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler))
+from renta;
