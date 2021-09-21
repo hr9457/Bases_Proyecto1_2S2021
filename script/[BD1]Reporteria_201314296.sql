@@ -80,45 +80,23 @@ ORDER BY actor.nombre ASC;
 -- ****************************
 -- apellidos 121 y nombres 51
 
-SELECT APELLIDOS_IGUALES.APELLIDO
-FROM(
-    SELECT actor.apellido AS APELLIDO, 
-            COUNT(actor.apellido) AS CANTIDAD
-    FROM actor
-    GROUP BY APELLIDO)APELLIDOS_IGUALES;
-
-SELECT NOMBRES_IGUALES.NOMBRE
-FROM(
-    SELECT actor.nombre AS NOMBRE, 
-            COUNT(actor.nombre) AS CANTIDAD
-    FROM actor
-    GROUP BY NOMBRE)NOMBRES_IGUALES
-WHERE NOMBRES_IGUALES.CANTIDAD >=2;
-
-
--- 122
-SELECT actor.nombre,actor.apellido, SUB1.APELLIDO AS P, SUB2.CANTIDAD
-FROM actor
-    INNER JOIN (
-
-        SELECT APELLIDOS_IGUALES.APELLIDO, APELLIDOS_IGUALES.CANTIDAD
-        FROM(
-            SELECT actor.apellido AS APELLIDO, 
-                    COUNT(actor.apellido) AS CANTIDAD
-            FROM actor
-            GROUP BY APELLIDO)APELLIDOS_IGUALES
-            )SUB1 ON SUB1.APELLIDO = actor.apellido
-    
-    INNER JOIN (
-        SELECT NOMBRES_IGUALES.NOMBRE, NOMBRES_IGUALES.CANTIDAD
-        FROM(
-            SELECT actor.nombre AS NOMBRE, 
-                    COUNT(actor.nombre) AS CANTIDAD
-            FROM actor
-            GROUP BY NOMBRE)NOMBRES_IGUALES
-        WHERE NOMBRES_IGUALES.CANTIDAD >=2  
-        )SUB2 on SUB2.NOMBRE = actor.nombre
-    ;
+SELECT 
+    info.apellido,
+    max(info.conteo)
+FROM (
+    SELECT 
+        actor.apellido AS APELLIDO,
+        NOMBRES_IGUALES.CANTIDAD AS CONTEO
+    FROM(
+        SELECT actor.nombre AS NOMBRE, 
+                COUNT(actor.nombre) AS CANTIDAD
+        FROM actor
+        GROUP BY NOMBRE
+        )NOMBRES_IGUALES
+        INNER JOIN actor ON actor.nombre = NOMBRES_IGUALES.NOMBRE
+    WHERE NOMBRES_IGUALES.CANTIDAD >=2
+    )info,actor
+GROUP BY info.apellido;
 
 
 
@@ -424,7 +402,7 @@ GROUP BY horror.city, horror.country;
 
 -- ****************************
 -- 15. mostrar el nombre del pais, el promedio por pais 
--- cantidad = 101
+-- cantidad = 108
 -- ****************************
 
 SELECT
@@ -650,32 +628,127 @@ GROUP BY clientes.identificador,
 -- ****************************
 
 
+
+SELECT
+    info_cliente.nombre,
+    info_cliente.apellido,
+    info_cliente.mes,
+    info_cliente.cantidad
+FROM(
+    -- 10 resultados
+    SELECT 
+        info_maximo.mes AS mes,
+        MAX(info_maximo.cantidad) AS cantidad
+    FROM(
+        -- 10,896
+        SELECT 
+            cliente.nombre_cliente AS nombre, 
+            cliente.apellido_cliente AS apellido,
+            EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler)) AS mes,
+            COUNT(renta.id_cliente) AS cantidad
+        FROM cliente
+            INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
+        GROUP BY  cliente.nombre_cliente, cliente.apellido_cliente, EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler))
+        )info_maximo
+    GROUP BY info_maximo.mes
+    
+        UNION ALL
+    
+    SELECT 
+        info_minimo.mes AS mes,
+        MIN(info_minimo.cantidad) AS cantidad
+    FROM(
+        -- 10,896
+        SELECT 
+            cliente.nombre_cliente AS nombre, 
+            cliente.apellido_cliente AS apellido,
+            EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler)) AS mes,
+            COUNT(renta.id_cliente) AS cantidad
+        FROM cliente
+            INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
+        GROUP BY  cliente.nombre_cliente, cliente.apellido_cliente, EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler))
+        )info_minimo
+    GROUP BY info_minimo.mes
+    )maximos_minimos
+    
+    INNER JOIN (
+         -- 2,466
+            SELECT 
+                cliente.nombre_cliente AS nombre, 
+                cliente.apellido_cliente AS apellido,
+                EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler)) AS mes,
+                COUNT(renta.id_cliente) AS cantidad
+            FROM cliente
+                INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
+            GROUP BY  cliente.nombre_cliente, cliente.apellido_cliente, EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler))  
+
+    )info_cliente ON  info_cliente.cantidad = maximos_minimos.cantidad AND info_cliente.mes = maximos_minimos.mes
+ORDER BY info_cliente.mes ASC, maximos_minimos.cantidad DESC;
+
+
+
+
+
+
+-- ****************************
+-- 20. 
+-- cantidad = 372
+-- ****************************
+
+
+-- 597
 SELECT 
-    cliente.nombre_cliente,
-    cliente.apellido_cliente,
-    COUNT(renta.id_cliente)
-FROM cliente
-    INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
-GROUP BY cliente.nombre_cliente, cliente.apellido_cliente
-ORDER BY COUNT(renta.id_cliente) DESC
-FETCH FIRST 1 ROWS ONLY;
-
+    ciudad.id_ciudad AS identificador,
+    ciudad.nombre AS country,
+    subConsulta1.IDIOMA,
+    COUNT(renta.id_cliente)/(MAX(cantidad_por_idioma.cantidad)) AS cantidad
+FROM renta
+    INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+    INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+    INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+    INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+    INNER JOIN ( 
+        -- 1000
+        SELECT 
+            pelicula.id_pelicula, 
+            pelicula.titulo_pelicula as titulo,
+            traduccion.id_traduccion as identificador,
+            traduccion.lenguaje AS IDIOMA
+        FROM pelicula_traduccion
+            INNER JOIN  pelicula ON pelicula.id_pelicula = pelicula_traduccion.id_pelicula
+            INNER JOIN  traduccion ON traduccion.id_traduccion = pelicula_traduccion.id_traduccion
+        GROUP BY pelicula.id_pelicula, pelicula.titulo_pelicula, traduccion.id_traduccion,traduccion.lenguaje     
+    )subConsulta1 ON subconsulta1.id_pelicula = inventario.id_pelicula
+    INNER JOIN (
+        -- cantidad de peliculas por idioma
+        -- English 1000
+        SELECT
+            traduccion.id_traduccion AS identificador,
+            traduccion.lenguaje AS lenguaje,
+            count(pelicula_traduccion.id_pelicula) AS cantidad
+        FROM pelicula_traduccion
+            INNER JOIN traduccion ON traduccion.id_traduccion = pelicula_traduccion.id_traduccion
+            INNER JOIN pelicula ON pelicula.id_pelicula = pelicula_traduccion.id_pelicula
+        GROUP BY traduccion.id_traduccion,traduccion.lenguaje   
+    ) cantidad_por_idioma ON cantidad_por_idioma.identificador = subConsulta1.identificador
+WHERE EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler))=7 AND EXTRACT(YEAR FROM TRUNC(renta.fecha_alquiler)) = 2005
+GROUP BY ciudad.id_ciudad, ciudad.nombre, subConsulta1.IDIOMA
+ORDER BY ciudad.nombre ASC;
 
 
 
 SELECT 
-    cliente.nombre_cliente,
-    cliente.apellido_cliente,
-    COUNT(renta.id_cliente)
-FROM cliente
-    INNER JOIN renta ON renta.id_cliente = cliente.id_cliente
-GROUP BY cliente.nombre_cliente, cliente.apellido_cliente
-ORDER BY COUNT(renta.id_cliente) ASC
-FETCH FIRST 1 ROWS ONLY;
-
-
-
-
-select 
-    EXTRACT(MONTH FROM TRUNC(renta.fecha_alquiler))
-from renta;
+    ciudad.id_ciudad AS identificador,
+    ciudad.nombre AS country,
+    TRUNC(renta.fecha_alquiler) as fecha,
+    inventario.id_pelicula as inventario,
+    pelicula.titulo_pelicula as pelicula,
+    COUNT(renta.id_inventario) as cantidad
+FROM renta
+    INNER JOIN cliente ON cliente.id_cliente = renta.id_cliente
+    INNER JOIN direccion ON direccion.id_direccion = cliente.id_direccion
+    INNER JOIN ciudad ON ciudad.id_ciudad = direccion.id_ciudad
+    INNER JOIN inventario ON inventario.id_inventario = renta.id_inventario
+    INNER JOIN pelicula ON pelicula.id_pelicula = inventario.id_pelicula 
+WHERE EXPORT
+GROUP BY ciudad.id_ciudad, ciudad.nombre,TRUNC(renta.fecha_alquiler), inventario.id_pelicula, pelicula.titulo_pelicula;
